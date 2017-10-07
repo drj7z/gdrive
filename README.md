@@ -25,7 +25,7 @@ are default settings for 'gdrive-sync.sh'.
 Specifically 'SETTINGS' points to the file that 'gdrive-sync.sh' loads.
 So it is possible to override the defaults.
 
-By executing 'grive.sh init' gdrive directory (GDRIVE_DIR) is initialited and 
+By executing 'gdrive-sync.sh setup' gdrive directory (GDRIVE_DIR) is initialited and 
 first synchronization starts.
 Just after that is executed the 'installSync' phase where it is asked if 
 continuos synchronization must be run by either cron or (ubuntu) start application.
@@ -38,6 +38,13 @@ The second install a start application Desktop file for the user
 https://launchpad.net/~nilarimogard/+archive/ubuntu/webupd8
 
 # ChangeLog
+
+@author Dr. John X Zoidberg <drjxzoidberg@gmail.com>
+
+@version 0.2.0
+
+@date 2017-10-07
+ - updated according with code changes.
 
 @author Dr. John X Zoidberg <drjxzoidberg@gmail.com>
 

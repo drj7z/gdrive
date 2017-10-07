@@ -180,6 +180,53 @@ sync ()
   done
 }
 
+###
+## setup
+###
+setup ()
+{
+  read -p 'Do you want create and '${GDRIVE_DIR}' directory? [y/N]' a
+  if [ "${a}" = "y" ] ; then
+    mkdir -p "${GDRIVE_DIR}"
+    RES=$?
+    if [ ${RES} -ne 0 ] ; then
+      echo "[EE] cannot mkdir (${RES}) gdrive dir. '${GDRIVE_DIR}' [\${GDRIVE_DIR}]."
+      return 1
+    fi
+  fi
+
+  read -p 'Do you want inizialize gdrive? [y/N]' a
+  if [ "${a}" = "y" ] ; then
+    cd "${GDRIVE_DIR}"
+    RES=$?
+    if [ ${RES} -ne 0 ] ; then
+      echo "[EE] cannot cd (${RES}) gdrive dir. '${GDRIVE_DIR}' [\${GDRIVE_DIR}]."
+      return 1
+    fi
+    grive -a || return 1
+    cd "${OLDPWD}"
+  fi
+
+  read -p 'Do you want to install sync daemon? [y/N]' a
+  if [ "${a}" != "y" ] ; then
+    return 1
+  fi
+
+  read -p 'What type of daemon Autostart/Cron? [a/c]' a
+
+  if [ "${a}" = "a" ] ; then
+    cp @@PREFIX_SHARE@@/@@GROUP@@/@@PRG_NAME@@/@@EXEC_PREFIX@@@@PRG_NAME@@.sh.desktop ~/.config/autostart/ || return 1
+    return $?
+  fi
+
+  if [ "${a}" = "c" ] ; then
+    crontab -l 2>/dev/null | grep -v "^no crontab for ${USER}" | cat - @@PREFIX_SHARE@@/@@GROUP@@/@@PRG_NAME@@/@@EXEC_PREFIX@@@@PRG_NAME@@.cron
+    return $?
+  fi
+
+  return 0
+}
+
 
 
 ## #####
@@ -188,5 +235,9 @@ sync ()
 ##
 ## #####
 
-sync "$@"
+if [ "$1" = "setup" ] ; then
+  setup
+else
+  sync "$@"
+fi
 
