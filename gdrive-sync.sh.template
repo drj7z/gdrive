@@ -77,6 +77,16 @@ removeLock ()
   lockfile-remove "$2"
 }
 
+
+##
+## Wait for ${TIMEOUT} seconds then kill the specified pid if lock 
+## (lockfile-check) is still valid.
+##
+## @param 1 [optional] pid process id (pid) to kill after timeout
+##
+## @use global TIMEOUT
+## @use global GDRIVE_LOG
+##
 timeout ()
 {
     local pid
@@ -88,22 +98,32 @@ timeout ()
     timeout=$((timeout * 60))
 
     while [ ${timeout} -ge 0 ] ; do
-        sleep 1s
-        if ! lockfile-check "${GDRIVE_LOG}" ; then
-            break
-        fi
-        ## else...
-        timeout=$((timeout - 1))
-	if [ ${timeout} -le 0 ] ; then
-            echo "[WW] $(date +%Y%m%d%H%M%S) sync (${pid}) timeout." >>"${GDRIVE_LOG}"
-            kill ${pid}
-	    break
-	fi
+      sleep 1s
+      if ! lockfile-check "${GDRIVE_LOG}" ; then
+        break
+      fi
+      ## else...
+      timeout=$((timeout - 1))
+	    if [ ${timeout} -le 0 ] ; then
+        echo "[WW] $(date +%Y%m%d%H%M%S) sync (${pid}) timeout." >>"${GDRIVE_LOG}"
+        kill ${pid}
+        break
+	    fi
     done
 }
 
+
 ##
-## Runs forever.
+## Runs forever gdrive synchronization if not in cron mode.
+## If synchronization does not complete within @see timeout stop it.
+## If not cron mode between each synchronization wait for ${INTERVAL}.
+##
+## @param 1 [optional] cronMode enable cron mode if value is 'cron'; in cron 
+##   mode exit after synchronization. 
+##
+## @use global GDRIVE_DIR
+## @use global GDRIVE_DIR
+## @use global INTERVAL
 ##
 sync ()
 {
@@ -160,6 +180,53 @@ sync ()
   done
 }
 
+###
+## setup
+###
+setup ()
+{
+  read -p 'Do you want create and '${GDRIVE_DIR}' directory? [y/N]' a
+  if [ "${a}" = "y" ] ; then
+    mkdir -p "${GDRIVE_DIR}"
+    RES=$?
+    if [ ${RES} -ne 0 ] ; then
+      echo "[EE] cannot mkdir (${RES}) gdrive dir. '${GDRIVE_DIR}' [\${GDRIVE_DIR}]."
+      return 1
+    fi
+  fi
+
+  read -p 'Do you want inizialize gdrive? [y/N]' a
+  if [ "${a}" = "y" ] ; then
+    cd "${GDRIVE_DIR}"
+    RES=$?
+    if [ ${RES} -ne 0 ] ; then
+      echo "[EE] cannot cd (${RES}) gdrive dir. '${GDRIVE_DIR}' [\${GDRIVE_DIR}]."
+      return 1
+    fi
+    grive -a || return 1
+    cd "${OLDPWD}"
+  fi
+
+  read -p 'Do you want to install sync daemon? [y/N]' a
+  if [ "${a}" != "y" ] ; then
+    return 1
+  fi
+
+  read -p 'What type of daemon Autostart/Cron? [a/c]' a
+
+  if [ "${a}" = "a" ] ; then
+    cp @@PREFIX_SHARE@@/@@GROUP@@/@@PRG_NAME@@/@@EXEC_PREFIX@@@@PRG_NAME@@.sh.desktop ~/.config/autostart/ || return 1
+    return $?
+  fi
+
+  if [ "${a}" = "c" ] ; then
+    crontab -l 2>/dev/null | grep -v "^no crontab for ${USER}" | cat - @@PREFIX_SHARE@@/@@GROUP@@/@@PRG_NAME@@/@@EXEC_PREFIX@@@@PRG_NAME@@.cron
+    return $?
+  fi
+
+  return 0
+}
+
 
 
 ## #####
@@ -168,5 +235,9 @@ sync ()
 ##
 ## #####
 
-sync "$@"
+if [ "$1" = "setup" ] ; then
+  setup
+else
+  sync "$@"
+fi
 

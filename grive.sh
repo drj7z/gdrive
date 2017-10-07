@@ -25,14 +25,23 @@ WD="$(dirname "$0")"
 
 
 cat >"${WD}/grive.settings" <<EOD
+PRG_NAME="gdrive-sync"
+
+GROUP=enli32
+
 PREFIX=/usr/local
-PREFIX_BIN="\${PREFIX}/bin"
-EXEC_PREFIX=
+PREFIX_BIN="${PREFIX}/bin"
+PREFIX_SHARE="${PREFIX}/share"
+PREFIX_LIB="${PREFIX}/lib${GROUP:+/${GROUP}}"
+
+FILE_PREFIX="${GROUP:+${GROUP}-}"
+EXEC_PREFIX="${FILE_PREFIX}"
+
 INTERVAL=5
 TIMEOUT=5
-GDRIVE_DIR="~/gdrive"
-GDRIVE_LOG="~/.gdrive-sync.log"
-SETTINGS="~/.gdrive-sync.settings"
+GDRIVE_DIR=\~/gdrive
+GDRIVE_LOG=\~/\".${GROUP:+${GROUP}/}${PRG_NAME}.log\"
+SETTINGS=\~/\".${GROUP:+${GROUP}/}${PRG_NAME}.settings\"
 EOD
 
 if [ -r "${WD}/grive.settings.user" ] ; then
@@ -51,7 +60,8 @@ install ()
 	This will install grive2 and its companions.
 	The procedure has been tested on 2017-02-17 on Ubuntu 16.10.
 	Dependencies: 
-	a) lockfile-progs
+	a) grive from 'ppa:nilarimogard/webupd8' repository;
+	b) lockfile-progs from 'official' repository.
 EOD
   
   read -p 'Continue [y/N]?' a
@@ -59,35 +69,36 @@ EOD
     return 1
   fi
 
-  sudo add-apt-repository ppa:nilarimogard/webupd8 || return 1
-  sudo apt-get update || return 1
-  sudo apt-get install grive lockfile-progs || return 1
+  read -p 'Install dependencies [y/N]?' a
+  if [ "${a}" = "y" ] ; then
+    sudo add-apt-repository ppa:nilarimogard/webupd8 || return 1
+    sudo apt-get update || return 1
+    sudo apt-get install grive lockfile-progs || return 1
+  fi
 
-
-  echo "Installing '/usr/local/bin/${EXEC_PREFIX}gdrive-sync.sh'."
+  echo "Installing '${PREFIX_BIN}/${EXEC_PREFIX}${PRG_NAME}.sh'."
 
   rm -fr "${WD}/build"
   mkdir -p "${WD}/build"
 
-  cp gdrive-sync.sh.template "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh"
-  cp gdrive-sync.cron.template "${WD}/build/gdrive-sync.cron"
-  cp gdrive-sync.sh.desktop.template "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh.desktop"
+  cp ${PRG_NAME}.sh.template "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh"
+  cp ${PRG_NAME}.cron.template "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.cron"
+  cp ${PRG_NAME}.sh.desktop.template "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh.desktop"
   IFS=$'\n'
   for p in $(grep -v ^# "${WD}/grive.settings") ; do
     name="${p%%=*}"
     eval value=\"\$${name}\"
     sed -i -e 's:@@'"${name}"'@@:'"${value}"':g' \
-      "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh" \
-      "${WD}/build/gdrive-sync.cron" \
-      "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh.desktop"
+      "${WD}/build"/*
+#      "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh" \
+#      "${WD}/build/${PRG_NAME}.cron" \
+#      "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh.desktop"
+
   done
 
-  sudo install "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh" /usr/local/bin/${EXEC_PREFIX}gdrive-sync.sh || return 1
-#  echo install "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh" /usr/local/bin/${EXEC_PREFIX}gdrive-sync.sh || return 1
-
-  
-  
-  echo "Now can run '$0 init'."
+  echo sudo install -D "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh" "${PREFIX_BIN}/${EXEC_PREFIX}${PRG_NAME}.sh" || return 1
+  echo sudo install -D "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh.desktop" "${PREFIX_SHARE}/${GROUP}/${PRG_NAME}/${EXEC_PREFIX}${PRG_NAME}.sh.desktop" || return 1
+  echo sudo install -D "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.cron" "${PREFIX_SHARE}/${GROUP}/${PRG_NAME}/${EXEC_PREFIX}${PRG_NAME}.cron" || return 1
 }
 
 
@@ -102,12 +113,12 @@ installSync ()
   read -p 'What type of daemon Autostart/Cron? [a/c]' a
 
   if [ "${a}" = "a" ] ; then
-    cp "${WD}/build/${EXEC_PREFIX}gdrive-sync.sh.desktop" ~/.config/autostart/
+    cp "${WD}/build/${EXEC_PREFIX}${PRG_NAME}.sh.desktop" ~/.config/autostart/
     return $?
   fi
 
   if [ "${a}" = "c" ] ; then
-    crontab -l 2>/dev/null | grep -v "^no crontab for ${USER}" | cat - "${WD}/build/gdrive-sync.cron"
+    crontab -l 2>/dev/null | grep -v "^no crontab for ${USER}" | cat - "${WD}/build/${PRG_NAME}.cron"
     return $?
   fi
 
@@ -138,6 +149,8 @@ init ()
 
   grive -a || return 1
 
+  cd "${OLDPWD}"
+
   installSync
 }
 
@@ -154,16 +167,8 @@ case $cmd in
     install
   ;;
 
-  init)
-    init
-  ;;
-
-  installSync)
-    installSync
-  ;;
-
   *)
-     echo "usage: $(basename "$0") install | init"
+     echo "usage: $(basename "$0") install"
   ;;
 esac
 

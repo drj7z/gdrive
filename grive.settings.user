@@ -2,18 +2,50 @@
 ## ChangeLog
 ##
 ## @author Dr. John X Zoidberg <drjxzoidberg@gmail.com>
+## @version 1.1.0
+## @date 2017-10-07
+##
+
+##
+## @author Dr. John X Zoidberg <drjxzoidberg@gmail.com>
 ## @version 1.0.0
 ## @date 2017-02-21
 ##
 
 
 
+## generic version 1.1.0
+
+##
+## usually you would *NOT* change these genric.
+##
+
+PRG_NAME="gdrive-sync"
+
+##
+## used as prefix for installed files.
+##
+GROUP=enli32
+
 PREFIX=/usr/local
 PREFIX_BIN="${PREFIX}/bin"
-EXEC_PREFIX=
+PREFIX_SHARE="${PREFIX}/share"
+PREFIX_LIB="${PREFIX}/lib${GROUP:+/${GROUP}}"
+
+FILE_PREFIX="${GROUP:+${GROUP}-}"
+EXEC_PREFIX="${FILE_PREFIX}"
+
+
+
+## program specific
+
+##
+## usually you would change only these specific.
+##
+
 INTERVAL=5
 TIMEOUT=5
-GDRIVE_DIR="~/gdrive"
-GDRIVE_LOG="~/.gdrive-sync.log"
-SETTINGS="~/.gdrive-sync.settings"
+GDRIVE_DIR=\~/gdrive
+GDRIVE_LOG=\~/\".${GROUP:+${GROUP}/}${PRG_NAME}.log\"
+SETTINGS=\~/\".${GROUP:+${GROUP}/}${PRG_NAME}.settings\"
 
